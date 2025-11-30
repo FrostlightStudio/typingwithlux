@@ -1,7 +1,8 @@
-package com.thedevjade.typingwithlux.dialogue.entries
+﻿package com.thedevjade.typingwithlux.dialogue.entries
 
 import com.typewritermc.core.entries.get
 import com.typewritermc.core.interaction.InteractionContext
+import com.typewritermc.engine.paper.entry.Modifier
 import com.typewritermc.engine.paper.entry.descendants
 import com.typewritermc.engine.paper.entry.dialogue.DialogueMessenger
 import com.typewritermc.engine.paper.entry.dialogue.MessengerState
@@ -9,27 +10,45 @@ import com.typewritermc.engine.paper.entry.dialogue.TickContext
 import com.typewritermc.engine.paper.entry.entity.SimpleEntityDefinition
 import com.typewritermc.entity.entries.entity.custom.NpcDefinition
 import com.typewritermc.entity.entries.entity.custom.NpcInstance
+import com.typewritermc.engine.paper.entry.entries.EventTrigger
+import com.typewritermc.engine.paper.entry.matches
 import com.typewritermc.engine.paper.extensions.placeholderapi.parsePlaceholders
 import com.typewritermc.engine.paper.interaction.startBlockingActionBar
 import com.typewritermc.engine.paper.interaction.stopBlockingActionBar
 import com.typewritermc.engine.paper.logger
+import org.aselstudios.luxdialoguesapi.Builders.Answer
 import org.aselstudios.luxdialoguesapi.Builders.Dialogue
 import org.aselstudios.luxdialoguesapi.Builders.Page
 import org.aselstudios.luxdialoguesapi.LuxDialoguesAPI
 import org.bukkit.entity.Player
-import kotlin.math.abs
 
-class RegularLuxDialogueHandler(
+class OptionsLuxDialogueHandler(
     player: Player,
     context: InteractionContext,
-    entry: RegularLuxDialogueEntry
-) : DialogueMessenger<RegularLuxDialogueEntry>(player, context, entry) {
+    entry: OptionsLuxDialogueEntry
+) : DialogueMessenger<OptionsLuxDialogueEntry>(player, context, entry) {
 
     var dialogue: Dialogue? = null
-    var endMethodHasNotRan: Boolean = true
+    var selectedOption: Int? = null
+    var hashedOptions: HashMap<Int, LuxOption> = HashMap()
+
+    override val modifiers: List<Modifier>
+        get() {
+            val selected = selectedOption ?: -1
+            val option = hashedOptions[selected]
+            return if (selected != -1) option!!.modifiers else emptyList()
+        }
+
+    override val eventTriggers: List<EventTrigger>
+        get() {
+            val selected = selectedOption ?: -1
+            val option = hashedOptions[selected]
+            return if (selected != -1) option!!.eventTriggers else emptyList()
+        }
 
     override fun init() {
         super.init()
+
         val speaker = entry.speaker.get()
         val data = when (speaker) {
             is NpcDefinition -> speaker.data.descendants(LuxNpcData::class).firstOrNull()?.get()
@@ -37,6 +56,7 @@ class RegularLuxDialogueHandler(
             is SimpleEntityDefinition -> speaker.data.descendants(LuxNpcData::class).firstOrNull()?.get()
             else -> null
         }
+
         if (data == null) {
             state = MessengerState.FINISHED
             logger.severe("No npc data found for speaker")
@@ -45,8 +65,14 @@ class RegularLuxDialogueHandler(
         val totalTime: Int = (entry.duration.get(player, context).toMillis() * 20 / 1000).toInt()
         val chars = entry.text.length.coerceAtLeast(1)
         val time = (totalTime / chars).coerceAtLeast(1)
-        val safeDialogueId = entry.id.takeWhile { it.isDigit() }
-            .ifEmpty { abs(entry.id.hashCode()).toString() }
+
+        val safeDialogueId = entry.id.takeWhile { it.isDigit() }.ifEmpty { kotlin.math.abs(entry.id.hashCode()).toString() }
+
+        // Initialize hashedOptions with entry.options
+        entry.options.forEachIndexed { index, option ->
+            hashedOptions[index] = option
+        }
+
         val dialogueBuilder = Dialogue.Builder()
             .setDialogueID(safeDialogueId)
             .setRange(-1.0)
@@ -64,44 +90,42 @@ class RegularLuxDialogueHandler(
             .setNameImage(data.nameStartImage, data.nameMidImage, data.nameEndImage, data.nameBackgroundColor, data.nameImageOffset)
             .setFogImage(data.fogImage, data.fogColor)
             .setEffect(data.effect)
-            .setPreventExit(data.preventExit)
+            .setPreventExit(true)
+        val pageBuilder = Page.Builder().setID("main-page-${'$'}safeDialogueId")
+        entry.text.split("\n").forEach { pageBuilder.addLine(it) }
+        hashedOptions.forEach { entryOption ->
+            val index = entryOption.key
+            val option = entryOption.value
+            if (option.criteria.isNotEmpty() && !option.criteria.matches(player, context)){
+                return@forEach
+            }
+            var answerBuilder = Answer.Builder()
+                .setAnswerID(index.toString())
+                .setAnswerText(option.text.get(player, context))
+                .addCallback { selectedOption = index }
 
-        // --- PAGE BUILDING
-        val pageBuilder = Page.Builder()
-            .setID("page-${safeDialogueId}")
+            // Add goTo if specified
+            if (option.goTo.isNotEmpty()) {
+                answerBuilder = answerBuilder.setGoTo(option.goTo)
+            }
 
-        entry.text.split("\n").forEach { line ->
-            pageBuilder.addLine(line)
+            // Add reply messages if specified
+            option.replyMessages.forEach { message ->
+                answerBuilder = answerBuilder.addReplyMessage(message)
+            }
+
+            val answer = answerBuilder.build()
+            pageBuilder.addAnswer(answer)
         }
-
-        // Add optional goTo navigation
-        if (entry.goTo.isNotEmpty()) {
-            pageBuilder.setGoTo(entry.goTo)
-        }
-
-        // Add optional timer
-        if (entry.timer > 0) {
-            pageBuilder.setTimer(entry.timer)
-        }
-
-        val builtPage = pageBuilder.build()
-
-        dialogueBuilder.addPage(builtPage)
-
+        val page = pageBuilder.build()
+        dialogueBuilder.addPage(page)
         dialogue = dialogueBuilder.build()
-
-        // --- SEND DIALOGUE (requires pageId)
-        LuxDialoguesAPI.getProvider().sendDialogue(player, dialogue, builtPage.id)
+        LuxDialoguesAPI.getProvider().sendDialogue(player, dialogue, page.id)
     }
 
     override fun dispose() {
         super.dispose()
-        if (endMethodHasNotRan) player.startBlockingActionBar()
-    }
-
-    override fun end() {
-        super.end()
-        endMethodHasNotRan = false
+        player.startBlockingActionBar()
     }
 
     override fun tick(context: TickContext) {
@@ -115,7 +139,7 @@ class RegularLuxDialogueHandler(
 
         player.stopBlockingActionBar()
 
-        if (!LuxDialoguesAPI.getProvider().isInDialogue(player)) {
+        if (selectedOption != null) {
             state = MessengerState.FINISHED
         }
     }
