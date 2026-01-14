@@ -34,20 +34,24 @@ class OptionsLuxDialogueHandler(
 
     override val modifiers: List<Modifier>
         get() {
-            val selected = selectedOption ?: -1
-            val option = hashedOptions[selected]
-            return if (selected != -1) option!!.modifiers else emptyList()
+            val selected = selectedOption ?: return emptyList()
+            val option = hashedOptions[selected] ?: return emptyList()
+            return option.modifiers
         }
 
     override val eventTriggers: List<EventTrigger>
         get() {
-            val selected = selectedOption ?: -1
-            val option = hashedOptions[selected]
-            return if (selected != -1) option!!.eventTriggers else emptyList()
+            val selected = selectedOption ?: return emptyList()
+            val option = hashedOptions[selected] ?: return emptyList()
+            return option.eventTriggers
         }
 
     override fun init() {
         super.init()
+        if (LuxDialogueSharedData.wasDialogueRecentlyEnded(player)) {
+            state = MessengerState.FINISHED
+            return
+        }
 
         val speaker = entry.speaker.get()
         val data = when (speaker) {
@@ -66,7 +70,7 @@ class OptionsLuxDialogueHandler(
         val chars = entry.text.length.coerceAtLeast(1)
         val time = (totalTime / chars).coerceAtLeast(1)
 
-        val safeDialogueId = entry.id.takeWhile { it.isDigit() }.ifEmpty { kotlin.math.abs(entry.id.hashCode()).toString() }
+        val safeDialogueId = LuxDialogueSharedData.generateUniqueDialogueId(entry.id)
 
         // Initialize hashedOptions with entry.options
         entry.options.forEachIndexed { index, option ->

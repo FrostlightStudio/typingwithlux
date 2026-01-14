@@ -73,7 +73,7 @@ class LuxTemporalAction(
             logger.severe("No npc data found for speaker")
             return
         }
-        val safeDialogueId = entry.id.takeWhile { it.isDigit() }.ifEmpty { abs(entry.id.hashCode()).toString() }
+        val safeDialogueId = LuxDialogueSharedData.generateUniqueDialogueId(entry.id)
 
         val dialogueBuilder = Dialogue.Builder()
             .setDialogueID(safeDialogueId)

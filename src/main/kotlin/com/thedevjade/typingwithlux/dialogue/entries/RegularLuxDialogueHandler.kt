@@ -30,6 +30,10 @@ class RegularLuxDialogueHandler(
 
     override fun init() {
         super.init()
+        if (LuxDialogueSharedData.wasDialogueRecentlyEnded(player)) {
+            state = MessengerState.FINISHED
+            return
+        }
         val speaker = entry.speaker.get()
         val data = when (speaker) {
             is NpcDefinition -> speaker.data.descendants(LuxNpcData::class).firstOrNull()?.get()
@@ -45,8 +49,7 @@ class RegularLuxDialogueHandler(
         val totalTime: Int = (entry.duration.get(player, context).toMillis() * 20 / 1000).toInt()
         val chars = entry.text.length.coerceAtLeast(1)
         val time = (totalTime / chars).coerceAtLeast(1)
-        val safeDialogueId = entry.id.takeWhile { it.isDigit() }
-            .ifEmpty { abs(entry.id.hashCode()).toString() }
+        val safeDialogueId = LuxDialogueSharedData.generateUniqueDialogueId(entry.id)
         val dialogueBuilder = Dialogue.Builder()
             .setDialogueID(safeDialogueId)
             .setRange(-1.0)
@@ -115,7 +118,7 @@ class RegularLuxDialogueHandler(
 
         player.stopBlockingActionBar()
 
-        if (!LuxDialoguesAPI.getProvider().isInDialogue(player)) {
+        if (dialogue != null && !LuxDialoguesAPI.getProvider().isInDialogue(player)) {
             state = MessengerState.FINISHED
         }
     }
