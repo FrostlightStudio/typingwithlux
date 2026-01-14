@@ -1,4 +1,4 @@
-﻿package com.thedevjade.typingwithlux.dialogue.entries
+package com.thedevjade.typingwithlux.dialogue.entries
 
 import com.typewritermc.core.entries.get
 import com.typewritermc.core.interaction.InteractionContext
@@ -21,6 +21,7 @@ import org.aselstudios.luxdialoguesapi.Builders.Dialogue
 import org.aselstudios.luxdialoguesapi.Builders.Page
 import org.aselstudios.luxdialoguesapi.LuxDialoguesAPI
 import org.bukkit.entity.Player
+import java.util.concurrent.ConcurrentHashMap
 
 class OptionsLuxDialogueHandler(
     player: Player,
@@ -30,7 +31,7 @@ class OptionsLuxDialogueHandler(
 
     var dialogue: Dialogue? = null
     var selectedOption: Int? = null
-    var hashedOptions: HashMap<Int, LuxOption> = HashMap()
+    var hashedOptions: ConcurrentHashMap<Int, LuxOption> = ConcurrentHashMap()
 
     override val modifiers: List<Modifier>
         get() {

@@ -1,4 +1,4 @@
-﻿package com.thedevjade.typingwithlux.dialogue.entries
+package com.thedevjade.typingwithlux.dialogue.entries
 
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref

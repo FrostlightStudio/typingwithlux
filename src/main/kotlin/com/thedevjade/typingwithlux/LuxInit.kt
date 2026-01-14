@@ -13,4 +13,3 @@ object LuxInit : Initializable {
         // Do something when the extension is shutdown
     }
 }
-

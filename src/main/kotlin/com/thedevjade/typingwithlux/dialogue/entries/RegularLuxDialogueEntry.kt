@@ -3,12 +3,7 @@ package com.thedevjade.typingwithlux.dialogue.entries
 import com.typewritermc.core.books.pages.Colors
 import com.typewritermc.core.entries.Ref
 import com.typewritermc.core.entries.emptyRef
-import com.typewritermc.core.extension.annotations.Colored
-import com.typewritermc.core.extension.annotations.Default
-import com.typewritermc.core.extension.annotations.Entry
-import com.typewritermc.core.extension.annotations.Help
-import com.typewritermc.core.extension.annotations.MultiLine
-import com.typewritermc.core.extension.annotations.Placeholder
+import com.typewritermc.core.extension.annotations.*
 import com.typewritermc.core.interaction.InteractionContext
 import com.typewritermc.engine.paper.entry.Criteria
 import com.typewritermc.engine.paper.entry.Modifier

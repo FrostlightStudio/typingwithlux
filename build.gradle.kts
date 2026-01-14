@@ -33,7 +33,6 @@ typewriter {
         channel = com.typewritermc.moduleplugin.ReleaseChannel.BETA
 
         paper {
-            // Optional - If you want to make sure a plugin is required to be installed to use this extension
             dependency("LuxDialogues")
         }
     }
@@ -50,9 +49,6 @@ dependencies {
 
 tasks {
     runServer {
-        // Configure the Minecraft version for our task.
-        // This is the only required configuration besides applying the plugin.
-        // Your plugin's jar (or shadowJar if present) will be used automatically.
         minecraftVersion("1.21")
     }
 }
